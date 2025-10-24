@@ -1,0 +1,19 @@
+module GaussianSwift {
+    header "sokol/sokol_app.h"
+    header "sokol/sokol_fetch.h"
+    header "sokol/sokol_gfx.h"
+    header "sokol/sokol_glue.h"
+    header "sokol/sokol_log.h"
+    header "init.h"
+    header "utils/quaternion.h"
+    header "camera.h"
+    header "renderer.h"
+    header "scene.h"
+    header "splat_texture.h"
+    header "utils/logger.h"
+    header "rendering/depth.glsl.h"
+    header "rendering/sort.glsl.h"
+    header "rendering/splat.glsl.h"
+    header "loader/spzloader.h"
+    export *
+}
