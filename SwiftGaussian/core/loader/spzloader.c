@@ -1,5 +1,5 @@
 #include "spzloader.h"
-#include "utils/quaternion.h"
+#include "core/utils/quaternion.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>

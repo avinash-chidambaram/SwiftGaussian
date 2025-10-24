@@ -27,39 +27,11 @@
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		303C7C502EAA3E5600AF83BB /* Exceptions for "SwiftGaussian" folder in "Compile Sources" phase from "SwiftGaussian" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = 303C7B8A2EAA323400AF83BB /* Sources */;
-			membershipExceptions = (
-				core/camera.h,
-				core/init.h,
-				core/loader/spzloader.h,
-				core/module.modulemap,
-				core/renderer.h,
-				core/rendering/depth.glsl.h,
-				core/rendering/sort.glsl.h,
-				core/rendering/splat.glsl.h,
-				core/scene.h,
-				core/sokol/sokol_app.h,
-				core/sokol/sokol_fetch.h,
-				core/sokol/sokol_gfx.h,
-				core/sokol/sokol_glue.h,
-				core/sokol/sokol_log.h,
-				core/splat_texture.h,
-				core/utils/handmademath.h,
-				core/utils/logger.h,
-				core/utils/quaternion.h,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		303C7B902EAA323400AF83BB /* SwiftGaussian */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				303C7BA02EAA323600AF83BB /* Exceptions for "SwiftGaussian" folder in "SwiftGaussian" target */,
-				303C7C502EAA3E5600AF83BB /* Exceptions for "SwiftGaussian" folder in "Compile Sources" phase from "SwiftGaussian" target */,
 			);
 			path = SwiftGaussian;
 			sourceTree = "<group>";
@@ -178,6 +150,7 @@
 		303C7BA22EAA323600AF83BB /* Debug configuration for PBXNativeTarget "SwiftGaussian" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -189,7 +162,13 @@
 					SOKOL_METAL,
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/SwiftGaussian/core\"/**";
+				HEADER_SEARCH_PATHS = (
+					"\"$(SRCROOT)/SwiftGaussian/core\"/**",
+					"\"$(SRCROOT)/SwiftGaussian/core/loader\"/**",
+					"\"$(SRCROOT)/SwiftGaussian/core/rendering\"/**",
+					"\"$(SRCROOT)/SwiftGaussian/core/utils\"/**",
+					"\"$(SRCROOT)/SwiftGaussian/core/sokol\"/**",
+				);
 				INFOPLIST_FILE = SwiftGaussian/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -201,7 +180,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				OTHER_CFLAGS = "\"-DSOKOL_METAL -D_SAPP_APPLE\"";
+				OTHER_CFLAGS = (
+					"\"-DSOKOL_METAL -D_SAPP_APPLE\"",
+					"\"-fobjc-arc -x objective-c\"",
+				);
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-Wno-module-import-in-extern-c",
@@ -219,18 +201,26 @@
 		303C7BA32EAA323600AF83BB /* Release configuration for PBXNativeTarget "SwiftGaussian" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = V73SFGHUY6;
 				ENABLE_MODULE_VERIFIER = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					SOKOL_IMPL,
 					SOKOL_METAL,
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/SwiftGaussian/core\"/**";
+				HEADER_SEARCH_PATHS = (
+					"\"$(SRCROOT)/SwiftGaussian/core\"/**",
+					"\"$(SRCROOT)/SwiftGaussian/core/loader\"/**",
+					"\"$(SRCROOT)/SwiftGaussian/core/rendering\"/**",
+					"\"$(SRCROOT)/SwiftGaussian/core/utils\"/**",
+					"\"$(SRCROOT)/SwiftGaussian/core/sokol\"/**",
+				);
 				INFOPLIST_FILE = SwiftGaussian/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -242,7 +232,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				OTHER_CFLAGS = "\"-DSOKOL_METAL -D_SAPP_APPLE\"";
+				OTHER_CFLAGS = (
+					"\"-DSOKOL_METAL -D_SAPP_APPLE\"",
+					"\"-fobjc-arc -x objective-c\"",
+				);
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-Wno-module-import-in-extern-c",
