@@ -7,7 +7,6 @@ module GaussianSwift [system][extern_c] {
     header "scene.h"
     header "utils/logger.h"
     header "loader/spzloader.h"
-    header "splat_texture.h"
     
     link framework "Metal"
     link framework "Foundation"
