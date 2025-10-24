@@ -1,4 +1,4 @@
-module GaussianSwift {
+module GaussianSwift [system][extern_c] {
     
     header "sokol/sokol_gfx.h"
     header "sokol/sokol_log.h"
@@ -12,7 +12,6 @@ module GaussianSwift {
     link framework "Metal"
     link framework "Foundation"
     link framework "UIKit"
-    
     
     export *
 }

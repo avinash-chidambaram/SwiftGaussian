@@ -21,7 +21,26 @@
 		303C7BA02EAA323600AF83BB /* Exceptions for "SwiftGaussian" folder in "SwiftGaussian" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				core/rendering/depth.glsl.h,
+				core/rendering/sort.glsl.h,
+				core/rendering/splat.glsl.h,
 				Info.plist,
+			);
+			publicHeaders = (
+				core/camera.h,
+				core/init.h,
+				core/loader/spzloader.h,
+				core/renderer.h,
+				core/scene.h,
+				core/sokol/sokol_app.h,
+				core/sokol/sokol_fetch.h,
+				core/sokol/sokol_gfx.h,
+				core/sokol/sokol_glue.h,
+				core/sokol/sokol_log.h,
+				core/splat_texture.h,
+				core/utils/handmademath.h,
+				core/utils/logger.h,
+				core/utils/quaternion.h,
 			);
 			target = 303C7B8D2EAA323400AF83BB /* SwiftGaussian */;
 		};
@@ -33,6 +52,15 @@
 			exceptions = (
 				303C7BA02EAA323600AF83BB /* Exceptions for "SwiftGaussian" folder in "SwiftGaussian" target */,
 			);
+			explicitFileTypes = {
+				core/camera.c = sourcecode.c.objc;
+				core/init.c = sourcecode.c.objc;
+				core/loader/spzloader.c = sourcecode.c.objc;
+				core/renderer.c = sourcecode.c.objc;
+				core/scene.c = sourcecode.c.objc;
+				core/splat_texture.c = sourcecode.c.objc;
+				core/utils/quaternion.c = sourcecode.c.objc;
+			};
 			path = SwiftGaussian;
 			sourceTree = "<group>";
 		};
@@ -79,11 +107,22 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXHeadersBuildPhase section */
+		6EBF4E612EAB9E6000819651 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
 /* Begin PBXNativeTarget section */
 		303C7B8D2EAA323400AF83BB /* SwiftGaussian */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 303C7BA12EAA323600AF83BB /* Build configuration list for PBXNativeTarget "SwiftGaussian" */;
 			buildPhases = (
+				6EBF4E612EAB9E6000819651 /* Headers */,
 				303C7B8A2EAA323400AF83BB /* Sources */,
 				303C7B8B2EAA323400AF83BB /* Frameworks */,
 				303C7B8C2EAA323400AF83BB /* Resources */,
@@ -166,23 +205,21 @@
 				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = V73SFGHUY6;
+				DEVELOPMENT_TEAM = K6FZYUHLAF;
 				ENABLE_MODULE_VERIFIER = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					SOKOL_IMPL,
 					SOKOL_METAL,
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/SwiftGaussian/SwiftGaussian/core",
-					"\"$(SRCROOT)/SwiftGaussian/core\"/**",
-				);
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/SwiftGaussian/core\"/**";
 				INFOPLIST_FILE = SwiftGaussian/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -190,7 +227,6 @@
 				MARKETING_VERSION = 1.0;
 				OTHER_CFLAGS = (
 					"\"-DSOKOL_METAL -D_SAPP_APPLE\"",
-					"\"-fobjc-arc -x objective-c\"",
 					"-fmodule-map-file=$(PROJECT_DIR)/SwiftGaussian/core/module.modulemap",
 				);
 				OTHER_CPLUSPLUSFLAGS = (
@@ -216,7 +252,7 @@
 				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = V73SFGHUY6;
+				DEVELOPMENT_TEAM = K6FZYUHLAF;
 				ENABLE_MODULE_VERIFIER = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -224,16 +260,14 @@
 					SOKOL_METAL,
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/SwiftGaussian/SwiftGaussian/core",
-					"\"$(SRCROOT)/SwiftGaussian/core\"/**",
-				);
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/SwiftGaussian/core\"/**";
 				INFOPLIST_FILE = SwiftGaussian/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -241,7 +275,6 @@
 				MARKETING_VERSION = 1.0;
 				OTHER_CFLAGS = (
 					"\"-DSOKOL_METAL -D_SAPP_APPLE\"",
-					"\"-fobjc-arc -x objective-c\"",
 					"-fmodule-map-file=$(PROJECT_DIR)/SwiftGaussian/core/module.modulemap",
 				);
 				OTHER_CPLUSPLUSFLAGS = (

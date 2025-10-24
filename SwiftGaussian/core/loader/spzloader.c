@@ -1,5 +1,5 @@
 #include "spzloader.h"
-#include "core/utils/quaternion.h"
+#include "utils/quaternion.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -13,8 +13,6 @@ static inline float clamp_fast(float x, float min_val, float max_val)
 {
     return fminf(fmaxf(x, min_val), max_val);
 }
-
-
 
 int parse_spz_data_to_splats(const uint8_t *decompressed_data, size_t decompressed_size,
                              PackedSplat **out_splats, uint32_t *out_count, BoundingBox *out_bounds)

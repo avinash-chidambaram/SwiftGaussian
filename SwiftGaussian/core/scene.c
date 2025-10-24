@@ -5,7 +5,7 @@
 #include "rendering/sort.glsl.h"
 #include "utils/logger.h"
 #include "loader/spzloader.h"
-#include "core/splat_texture.h"
+#include "splat_texture.h"
 #include <assert.h>
 #include "utils/handmademath.h"
 #include "utils/quaternion.h"

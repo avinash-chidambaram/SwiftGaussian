@@ -159,9 +159,9 @@ class ViewController: UIViewController, MTKViewDelegate {
     }
     
     deinit {
-        DispatchQueue.main.async {
-            self.cleanupSokol()
-        }
+//        DispatchQueue.main.async {
+//            self.cleanupSokol()
+//        }
     }
     
     
