@@ -6,7 +6,7 @@
 #include "sokol/sokol_gfx.h"
 #include "camera.h"
 #include "utils/handmademath.h"
-#include "splat_texture.h"
+//#include "splat_texture.h"
 
 #ifdef __cplusplus
 extern "C"

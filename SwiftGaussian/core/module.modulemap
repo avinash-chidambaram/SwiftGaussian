@@ -1,12 +1,12 @@
 module GaussianSwift [system][extern_c] {
     
-    header "sokol/sokol_gfx.h"
-    header "sokol/sokol_log.h"
+//    header "sokol/sokol_gfx.h"
+//    header "sokol/sokol_log.h"
     header "init.h"
+    header "sokol_glue_app.h"
     header "renderer.h"
     header "scene.h"
     header "utils/logger.h"
-    header "loader/spzloader.h"
     
     link framework "Metal"
     link framework "Foundation"

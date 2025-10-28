@@ -207,7 +207,6 @@ void cleanup_rendering(void)
 
 
 #if defined(__APPLE__) && TARGET_OS_IOS
-#define SOKOL_METAL
 #include "sokol/sokol_gfx.h"
 #include "sokol/sokol_log.h"
 #include <stdio.h>

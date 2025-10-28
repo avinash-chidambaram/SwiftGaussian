@@ -2,7 +2,7 @@
 #define RENDERER_H
 
 #include <stdbool.h>
-#include "sokol/sokol_gfx.h"
+//#include "sokol/sokol_gfx.h"
 
 #ifdef __cplusplus
 extern "C"

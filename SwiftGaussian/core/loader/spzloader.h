@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "utils/handmademath.h"
-#include "scene.h"
+#include "splat_texture.h"
 #include "utils/logger.h"
 
 #ifdef __cplusplus

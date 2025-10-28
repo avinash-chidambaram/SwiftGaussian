@@ -2331,783 +2331,785 @@ _SOKOL_PRIVATE void _sfetch_request_handler(_sfetch_t *ctx, uint32_t slot_id)
 _SOKOL_PRIVATE DWORD WINAPI _sfetch_channel_thread_func(LPVOID arg)
 {
 #else
-_SOKOL_PRIVATE void *_sfetch_channel_thread_func(void *arg)
-{
-#endif
-    _sfetch_channel_t *chn = (_sfetch_channel_t *)arg;
-    _sfetch_thread_entered(&chn->thread);
-    while (!_sfetch_thread_stop_requested(&chn->thread))
+    _SOKOL_PRIVATE void *_sfetch_channel_thread_func(void *arg)
     {
-        /* block until work arrives */
-        uint32_t slot_id = _sfetch_thread_dequeue_incoming(&chn->thread, &chn->thread_incoming);
-        /* slot_id will be invalid if the thread was woken up to join */
-        if (!_sfetch_thread_stop_requested(&chn->thread))
+#endif
+        _sfetch_channel_t *chn = (_sfetch_channel_t *)arg;
+        _sfetch_thread_entered(&chn->thread);
+        while (!_sfetch_thread_stop_requested(&chn->thread))
         {
-            SOKOL_ASSERT(0 != slot_id);
-            chn->request_handler(chn->ctx, slot_id);
-            SOKOL_ASSERT(!_sfetch_ring_full(&chn->thread_outgoing));
-            _sfetch_thread_enqueue_outgoing(&chn->thread, &chn->thread_outgoing, slot_id);
+            /* block until work arrives */
+            uint32_t slot_id = _sfetch_thread_dequeue_incoming(&chn->thread, &chn->thread_incoming);
+            /* slot_id will be invalid if the thread was woken up to join */
+            if (!_sfetch_thread_stop_requested(&chn->thread))
+            {
+                SOKOL_ASSERT(0 != slot_id);
+                chn->request_handler(chn->ctx, slot_id);
+                SOKOL_ASSERT(!_sfetch_ring_full(&chn->thread_outgoing));
+                _sfetch_thread_enqueue_outgoing(&chn->thread, &chn->thread_outgoing, slot_id);
+            }
         }
+        _sfetch_thread_leaving(&chn->thread);
+        return 0;
     }
-    _sfetch_thread_leaving(&chn->thread);
-    return 0;
-}
 #endif /* _SFETCH_HAS_THREADS */
-
+    
 #if _SFETCH_PLATFORM_EMSCRIPTEN
-EM_JS(void, sfetch_js_send_head_request, (uint32_t slot_id, const char *path_cstr), {
-    const path_str = UTF8ToString(path_cstr);
-    fetch(path_str, {method : 'HEAD'}).then((response) = > {
-                                          if (response.ok)
-                                          {
-                                              const content_length = response.headers.get('Content-Length');
-                                              if (content_length == = null)
-                                              {
-                                                  console.warn(`sokol_fetch.h : HEAD ${path_str} response has no Content - Length`);
-                                                  __sfetch_emsc_failed_other(slot_id);
-                                              }
-                                              else
-                                              {
-                                                  __sfetch_emsc_head_response(slot_id, Number(content_length));
-                                              }
-                                          }
-                                          else
-                                          {
-                                              __sfetch_emsc_failed_http_status(slot_id, response.status);
-                                          }
-                                      })
+    EM_JS(void, sfetch_js_send_head_request, (uint32_t slot_id, const char *path_cstr), {
+        const path_str = UTF8ToString(path_cstr);
+        fetch(path_str, {method : 'HEAD'}).then((response) = > {
+            if (response.ok)
+            {
+                const content_length = response.headers.get('Content-Length');
+                if (content_length == = null)
+                {
+                    console.warn(`sokol_fetch.h : HEAD ${path_str} response has no Content - Length`);
+                    __sfetch_emsc_failed_other(slot_id);
+                }
+                else
+                {
+                    __sfetch_emsc_head_response(slot_id, Number(content_length));
+                }
+            }
+            else
+            {
+                __sfetch_emsc_failed_http_status(slot_id, response.status);
+            }
+        })
         .catch((err) = > {
             console.error(`sokol_fetch.h : HEAD ${path_str} failed with : `, err);
             __sfetch_emsc_failed_other(slot_id);
         });
-})
-
-/* if bytes_to_read != 0, a range-request will be sent, otherwise a normal request */
-EM_JS(void, sfetch_js_send_get_request, (uint32_t slot_id, const char *path_cstr, uint32_t offset, uint32_t bytes_to_read, void *buf_ptr, uint32_t buf_size), {
-    const path_str = UTF8ToString(path_cstr);
-    const headers = new Headers();
-    const range_request = bytes_to_read > 0;
-    if (range_request)
-    {
-        headers.append('Range', `bytes = ${offset} - ${offset + bytes_to_read - 1}`);
-    }
-    fetch(path_str, {method : 'GET', headers}).then((response) = > {
-                                                  if (response.ok)
-                                                  {
-                                                      response.arrayBuffer().then((data) = > {
-                                                                                const u8_data = new Uint8Array(data);
-                                                                                if (u8_data.length <= buf_size)
-                                                                                {
-                                                                                    HEAPU8.set(u8_data, buf_ptr);
-                                                                                    __sfetch_emsc_get_response(slot_id, bytes_to_read, u8_data.length);
-                                                                                }
-                                                                                else
-                                                                                {
-                                                                                    __sfetch_emsc_failed_buffer_too_small(slot_id);
-                                                                                }
-                                                                            })
-                                                          .catch((err) = > {
-                                                              console.error(`sokol_fetch.h : GET ${path_str} failed with : `, err);
-                                                              __sfetch_emsc_failed_other(slot_id);
-                                                          });
-                                                  }
-                                                  else
-                                                  {
-                                                      __sfetch_emsc_failed_http_status(slot_id, response.status);
-                                                  }
-                                              })
+    })
+    
+    /* if bytes_to_read != 0, a range-request will be sent, otherwise a normal request */
+    EM_JS(void, sfetch_js_send_get_request, (uint32_t slot_id, const char *path_cstr, uint32_t offset, uint32_t bytes_to_read, void *buf_ptr, uint32_t buf_size), {
+        const path_str = UTF8ToString(path_cstr);
+        const headers = new Headers();
+        const range_request = bytes_to_read > 0;
+        if (range_request)
+        {
+            headers.append('Range', `bytes = ${offset} - ${offset + bytes_to_read - 1}`);
+        }
+        fetch(path_str, {method : 'GET', headers}).then((response) = > {
+            if (response.ok)
+            {
+                response.arrayBuffer().then((data) = > {
+                    const u8_data = new Uint8Array(data);
+                    if (u8_data.length <= buf_size)
+                    {
+                        HEAPU8.set(u8_data, buf_ptr);
+                        __sfetch_emsc_get_response(slot_id, bytes_to_read, u8_data.length);
+                    }
+                    else
+                    {
+                        __sfetch_emsc_failed_buffer_too_small(slot_id);
+                    }
+                })
+                .catch((err) = > {
+                    console.error(`sokol_fetch.h : GET ${path_str} failed with : `, err);
+                    __sfetch_emsc_failed_other(slot_id);
+                });
+            }
+            else
+            {
+                __sfetch_emsc_failed_http_status(slot_id, response.status);
+            }
+        })
         .catch((err) = > {
             console.error(`sokol_fetch.h : GET ${path_str} failed with : `, err);
             __sfetch_emsc_failed_other(slot_id);
         });
-})
-
-/*=== emscripten specific C helper functions =================================*/
+    })
+    
+    /*=== emscripten specific C helper functions =================================*/
 #ifdef __cplusplus
-extern "C"
-{
+    extern "C"
+    {
 #endif
-    void _sfetch_emsc_send_get_request(uint32_t slot_id, _sfetch_item_t *item)
-    {
-        if ((item->buffer.ptr == 0) || (item->buffer.size == 0))
+        void _sfetch_emsc_send_get_request(uint32_t slot_id, _sfetch_item_t *item)
         {
-            item->thread.error_code = SFETCH_ERROR_NO_BUFFER;
-            item->thread.failed = true;
-        }
-        else
-        {
-            uint32_t offset = 0;
-            uint32_t bytes_to_read = 0;
-            if (item->chunk_size > 0)
+            if ((item->buffer.ptr == 0) || (item->buffer.size == 0))
             {
-                /* send HTTP range request */
-                SOKOL_ASSERT(item->thread.content_size > 0);
-                SOKOL_ASSERT(item->thread.http_range_offset < item->thread.content_size);
-                bytes_to_read = item->thread.content_size - item->thread.http_range_offset;
-                if (bytes_to_read > item->chunk_size)
-                {
-                    bytes_to_read = item->chunk_size;
-                }
-                SOKOL_ASSERT(bytes_to_read > 0);
-                offset = item->thread.http_range_offset;
+                item->thread.error_code = SFETCH_ERROR_NO_BUFFER;
+                item->thread.failed = true;
             }
-            sfetch_js_send_get_request(slot_id, item->path.buf, offset, bytes_to_read, (void *)item->buffer.ptr, item->buffer.size);
-        }
-    }
-
-    /* called by JS when an initial HEAD request finished successfully (only when streaming chunks) */
-    EMSCRIPTEN_KEEPALIVE void _sfetch_emsc_head_response(uint32_t slot_id, uint32_t content_length)
-    {
-        _sfetch_t *ctx = _sfetch_ctx();
-        if (ctx && ctx->valid)
-        {
-            _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
-            if (item)
+            else
             {
-                SOKOL_ASSERT(item->buffer.ptr && (item->buffer.size > 0));
-                item->thread.content_size = content_length;
+                uint32_t offset = 0;
+                uint32_t bytes_to_read = 0;
+                if (item->chunk_size > 0)
+                {
+                    /* send HTTP range request */
+                    SOKOL_ASSERT(item->thread.content_size > 0);
+                    SOKOL_ASSERT(item->thread.http_range_offset < item->thread.content_size);
+                    bytes_to_read = item->thread.content_size - item->thread.http_range_offset;
+                    if (bytes_to_read > item->chunk_size)
+                    {
+                        bytes_to_read = item->chunk_size;
+                    }
+                    SOKOL_ASSERT(bytes_to_read > 0);
+                    offset = item->thread.http_range_offset;
+                }
+                sfetch_js_send_get_request(slot_id, item->path.buf, offset, bytes_to_read, (void *)item->buffer.ptr, item->buffer.size);
+            }
+        }
+        
+        /* called by JS when an initial HEAD request finished successfully (only when streaming chunks) */
+        EMSCRIPTEN_KEEPALIVE void _sfetch_emsc_head_response(uint32_t slot_id, uint32_t content_length)
+        {
+            _sfetch_t *ctx = _sfetch_ctx();
+            if (ctx && ctx->valid)
+            {
+                _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
+                if (item)
+                {
+                    SOKOL_ASSERT(item->buffer.ptr && (item->buffer.size > 0));
+                    item->thread.content_size = content_length;
+                    _sfetch_emsc_send_get_request(slot_id, item);
+                }
+            }
+        }
+        
+        /* called by JS when a followup GET request finished successfully */
+        EMSCRIPTEN_KEEPALIVE void _sfetch_emsc_get_response(uint32_t slot_id, uint32_t range_fetched_size, uint32_t content_fetched_size)
+        {
+            _sfetch_t *ctx = _sfetch_ctx();
+            if (ctx && ctx->valid)
+            {
+                _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
+                if (item)
+                {
+                    item->thread.fetched_size = content_fetched_size;
+                    item->thread.fetched_offset += content_fetched_size;
+                    item->thread.http_range_offset += range_fetched_size;
+                    if (item->chunk_size == 0)
+                    {
+                        item->thread.finished = true;
+                    }
+                    else if (item->thread.http_range_offset >= item->thread.content_size)
+                    {
+                        item->thread.finished = true;
+                    }
+                    _sfetch_ring_enqueue(&ctx->chn[item->channel].user_outgoing, slot_id);
+                }
+            }
+        }
+        
+        /* called by JS when an error occurred */
+        EMSCRIPTEN_KEEPALIVE void _sfetch_emsc_failed_http_status(uint32_t slot_id, uint32_t http_status)
+        {
+            _sfetch_t *ctx = _sfetch_ctx();
+            if (ctx && ctx->valid)
+            {
+                _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
+                if (item)
+                {
+                    if (http_status == 404)
+                    {
+                        item->thread.error_code = SFETCH_ERROR_FILE_NOT_FOUND;
+                    }
+                    else
+                    {
+                        item->thread.error_code = SFETCH_ERROR_INVALID_HTTP_STATUS;
+                    }
+                    item->thread.failed = true;
+                    item->thread.finished = true;
+                    _sfetch_ring_enqueue(&ctx->chn[item->channel].user_outgoing, slot_id);
+                }
+            }
+        }
+        
+        EMSCRIPTEN_KEEPALIVE void _sfetch_emsc_failed_buffer_too_small(uint32_t slot_id)
+        {
+            _sfetch_t *ctx = _sfetch_ctx();
+            if (ctx && ctx->valid)
+            {
+                _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
+                if (item)
+                {
+                    item->thread.error_code = SFETCH_ERROR_BUFFER_TOO_SMALL;
+                    item->thread.failed = true;
+                    item->thread.finished = true;
+                    _sfetch_ring_enqueue(&ctx->chn[item->channel].user_outgoing, slot_id);
+                }
+            }
+        }
+        
+        EMSCRIPTEN_KEEPALIVE void _sfetch_emsc_failed_other(uint32_t slot_id)
+        {
+            _sfetch_t *ctx = _sfetch_ctx();
+            if (ctx && ctx->valid)
+            {
+                _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
+                if (item)
+                {
+                    item->thread.error_code = SFETCH_ERROR_JS_OTHER;
+                    item->thread.failed = true;
+                    item->thread.finished = true;
+                    _sfetch_ring_enqueue(&ctx->chn[item->channel].user_outgoing, slot_id);
+                }
+            }
+        }
+        
+#ifdef __cplusplus
+    } /* extern "C" */
+#endif
+    
+    _SOKOL_PRIVATE void _sfetch_request_handler(_sfetch_t *ctx, uint32_t slot_id)
+    {
+        _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
+        if (!item)
+        {
+            return;
+        }
+        if (item->state == _SFETCH_STATE_FETCHING)
+        {
+            if ((item->chunk_size > 0) && (item->thread.content_size == 0))
+            {
+                /* if streaming download is requested, and the content-length isn't known
+                 yet, need to send a HEAD request first
+                 */
+                sfetch_js_send_head_request(slot_id, item->path.buf);
+            }
+            else
+            {
+                /* otherwise, this is either a request to load the entire file, or
+                 to load the next streaming chunk
+                 */
                 _sfetch_emsc_send_get_request(slot_id, item);
             }
         }
-    }
-
-    /* called by JS when a followup GET request finished successfully */
-    EMSCRIPTEN_KEEPALIVE void _sfetch_emsc_get_response(uint32_t slot_id, uint32_t range_fetched_size, uint32_t content_fetched_size)
-    {
-        _sfetch_t *ctx = _sfetch_ctx();
-        if (ctx && ctx->valid)
+        else
         {
-            _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
-            if (item)
-            {
-                item->thread.fetched_size = content_fetched_size;
-                item->thread.fetched_offset += content_fetched_size;
-                item->thread.http_range_offset += range_fetched_size;
-                if (item->chunk_size == 0)
-                {
-                    item->thread.finished = true;
-                }
-                else if (item->thread.http_range_offset >= item->thread.content_size)
-                {
-                    item->thread.finished = true;
-                }
-                _sfetch_ring_enqueue(&ctx->chn[item->channel].user_outgoing, slot_id);
-            }
-        }
-    }
-
-    /* called by JS when an error occurred */
-    EMSCRIPTEN_KEEPALIVE void _sfetch_emsc_failed_http_status(uint32_t slot_id, uint32_t http_status)
-    {
-        _sfetch_t *ctx = _sfetch_ctx();
-        if (ctx && ctx->valid)
-        {
-            _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
-            if (item)
-            {
-                if (http_status == 404)
-                {
-                    item->thread.error_code = SFETCH_ERROR_FILE_NOT_FOUND;
-                }
-                else
-                {
-                    item->thread.error_code = SFETCH_ERROR_INVALID_HTTP_STATUS;
-                }
-                item->thread.failed = true;
-                item->thread.finished = true;
-                _sfetch_ring_enqueue(&ctx->chn[item->channel].user_outgoing, slot_id);
-            }
-        }
-    }
-
-    EMSCRIPTEN_KEEPALIVE void _sfetch_emsc_failed_buffer_too_small(uint32_t slot_id)
-    {
-        _sfetch_t *ctx = _sfetch_ctx();
-        if (ctx && ctx->valid)
-        {
-            _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
-            if (item)
-            {
-                item->thread.error_code = SFETCH_ERROR_BUFFER_TOO_SMALL;
-                item->thread.failed = true;
-                item->thread.finished = true;
-                _sfetch_ring_enqueue(&ctx->chn[item->channel].user_outgoing, slot_id);
-            }
-        }
-    }
-
-    EMSCRIPTEN_KEEPALIVE void _sfetch_emsc_failed_other(uint32_t slot_id)
-    {
-        _sfetch_t *ctx = _sfetch_ctx();
-        if (ctx && ctx->valid)
-        {
-            _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
-            if (item)
-            {
-                item->thread.error_code = SFETCH_ERROR_JS_OTHER;
-                item->thread.failed = true;
-                item->thread.finished = true;
-                _sfetch_ring_enqueue(&ctx->chn[item->channel].user_outgoing, slot_id);
-            }
-        }
-    }
-
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
-
-_SOKOL_PRIVATE void _sfetch_request_handler(_sfetch_t *ctx, uint32_t slot_id)
-{
-    _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, slot_id);
-    if (!item)
-    {
-        return;
-    }
-    if (item->state == _SFETCH_STATE_FETCHING)
-    {
-        if ((item->chunk_size > 0) && (item->thread.content_size == 0))
-        {
-            /* if streaming download is requested, and the content-length isn't known
-               yet, need to send a HEAD request first
+            /* just move all other items (e.g. paused or cancelled)
+             into the outgoing queue, so they won't get lost
              */
-            sfetch_js_send_head_request(slot_id, item->path.buf);
+            _sfetch_ring_enqueue(&ctx->chn[item->channel].user_outgoing, slot_id);
+        }
+        if (item->thread.failed)
+        {
+            item->thread.finished = true;
+        }
+    }
+#endif /* _SFETCH_PLATFORM_EMSCRIPTEN */
+    
+    _SOKOL_PRIVATE void _sfetch_channel_discard(_sfetch_channel_t *chn)
+    {
+        SOKOL_ASSERT(chn);
+#if _SFETCH_HAS_THREADS
+        if (chn->valid)
+        {
+            _sfetch_thread_join(&chn->thread);
+        }
+        _sfetch_ring_discard(&chn->thread_incoming);
+        _sfetch_ring_discard(&chn->thread_outgoing);
+#endif
+        _sfetch_ring_discard(&chn->free_lanes);
+        _sfetch_ring_discard(&chn->user_sent);
+        _sfetch_ring_discard(&chn->user_incoming);
+        _sfetch_ring_discard(&chn->user_outgoing);
+        _sfetch_ring_discard(&chn->free_lanes);
+        chn->valid = false;
+    }
+    
+    _SOKOL_PRIVATE bool _sfetch_channel_init(_sfetch_channel_t *chn, _sfetch_t *ctx, uint32_t num_items, uint32_t num_lanes, void (*request_handler)(_sfetch_t *ctx, uint32_t))
+    {
+        SOKOL_ASSERT(chn && (num_items > 0) && request_handler);
+        SOKOL_ASSERT(!chn->valid);
+        bool valid = true;
+        chn->request_handler = request_handler;
+        chn->ctx = ctx;
+        valid &= _sfetch_ring_init(&chn->free_lanes, num_lanes);
+        for (uint32_t lane = 0; lane < num_lanes; lane++)
+        {
+            _sfetch_ring_enqueue(&chn->free_lanes, lane);
+        }
+        valid &= _sfetch_ring_init(&chn->user_sent, num_items);
+        valid &= _sfetch_ring_init(&chn->user_incoming, num_lanes);
+        valid &= _sfetch_ring_init(&chn->user_outgoing, num_lanes);
+#if _SFETCH_HAS_THREADS
+        valid &= _sfetch_ring_init(&chn->thread_incoming, num_lanes);
+        valid &= _sfetch_ring_init(&chn->thread_outgoing, num_lanes);
+#endif
+        if (valid)
+        {
+            chn->valid = true;
+#if _SFETCH_HAS_THREADS
+            _sfetch_thread_init(&chn->thread, _sfetch_channel_thread_func, chn);
+#endif
+            return true;
         }
         else
         {
-            /* otherwise, this is either a request to load the entire file, or
-               to load the next streaming chunk
-             */
-            _sfetch_emsc_send_get_request(slot_id, item);
+            _sfetch_channel_discard(chn);
+            return false;
         }
     }
-    else
+    
+    /* put a request into the channels sent-queue, this is where all new requests
+     are stored until a lane becomes free.
+     */
+    _SOKOL_PRIVATE bool _sfetch_channel_send(_sfetch_channel_t *chn, uint32_t slot_id)
     {
-        /* just move all other items (e.g. paused or cancelled)
-           into the outgoing queue, so they won't get lost
-        */
-        _sfetch_ring_enqueue(&ctx->chn[item->channel].user_outgoing, slot_id);
+        SOKOL_ASSERT(chn && chn->valid);
+        if (!_sfetch_ring_full(&chn->user_sent))
+        {
+            _sfetch_ring_enqueue(&chn->user_sent, slot_id);
+            return true;
+        }
+        else
+        {
+            _SFETCH_ERROR(SEND_QUEUE_FULL);
+            return false;
+        }
     }
-    if (item->thread.failed)
+    
+    _SOKOL_PRIVATE void _sfetch_invoke_response_callback(_sfetch_item_t *item)
     {
-        item->thread.finished = true;
+        sfetch_response_t response;
+        _sfetch_clear(&response, sizeof(response));
+        response.handle = item->handle;
+        response.dispatched = (item->state == _SFETCH_STATE_DISPATCHED);
+        response.fetched = (item->state == _SFETCH_STATE_FETCHED);
+        response.paused = (item->state == _SFETCH_STATE_PAUSED);
+        response.finished = item->user.finished;
+        response.failed = (item->state == _SFETCH_STATE_FAILED);
+        response.cancelled = item->user.cancel;
+        response.error_code = item->user.error_code;
+        response.channel = item->channel;
+        response.lane = item->lane;
+        response.path = item->path.buf;
+        response.user_data = item->user.user_data;
+        response.data_offset = item->user.fetched_offset - item->user.fetched_size;
+        response.data.ptr = item->buffer.ptr;
+        response.data.size = item->user.fetched_size;
+        response.buffer = item->buffer;
+        item->callback(&response);
     }
-}
-#endif /* _SFETCH_PLATFORM_EMSCRIPTEN */
-
-_SOKOL_PRIVATE void _sfetch_channel_discard(_sfetch_channel_t *chn)
-{
-    SOKOL_ASSERT(chn);
+    
+    _SOKOL_PRIVATE void _sfetch_cancel_item(_sfetch_item_t *item)
+    {
+        item->state = _SFETCH_STATE_FAILED;
+        item->user.finished = true;
+        item->user.error_code = SFETCH_ERROR_CANCELLED;
+    }
+    
+    /* per-frame channel stuff: move requests in and out of the IO threads, call response callbacks */
+    _SOKOL_PRIVATE void _sfetch_channel_dowork(_sfetch_channel_t *chn, _sfetch_pool_t *pool)
+    {
+        
+        /* move items from sent- to incoming-queue permitting free lanes */
+        const uint32_t num_sent = _sfetch_ring_count(&chn->user_sent);
+        const uint32_t avail_lanes = _sfetch_ring_count(&chn->free_lanes);
+        const uint32_t num_move = (num_sent < avail_lanes) ? num_sent : avail_lanes;
+        for (uint32_t i = 0; i < num_move; i++)
+        {
+            const uint32_t slot_id = _sfetch_ring_dequeue(&chn->user_sent);
+            _sfetch_item_t *item = _sfetch_pool_item_lookup(pool, slot_id);
+            SOKOL_ASSERT(item);
+            SOKOL_ASSERT(item->state == _SFETCH_STATE_ALLOCATED);
+            // if the item was cancelled early, kick it out immediately
+            if (item->user.cancel)
+            {
+                _sfetch_cancel_item(item);
+                _sfetch_invoke_response_callback(item);
+                _sfetch_pool_item_free(pool, slot_id);
+                continue;
+            }
+            item->state = _SFETCH_STATE_DISPATCHED;
+            item->lane = _sfetch_ring_dequeue(&chn->free_lanes);
+            // if no buffer provided yet, invoke response callback to do so
+            if (0 == item->buffer.ptr)
+            {
+                _sfetch_invoke_response_callback(item);
+            }
+            _sfetch_ring_enqueue(&chn->user_incoming, slot_id);
+        }
+        
+        /* prepare incoming items for being moved into the IO thread */
+        const uint32_t num_incoming = _sfetch_ring_count(&chn->user_incoming);
+        for (uint32_t i = 0; i < num_incoming; i++)
+        {
+            const uint32_t slot_id = _sfetch_ring_peek(&chn->user_incoming, i);
+            _sfetch_item_t *item = _sfetch_pool_item_lookup(pool, slot_id);
+            SOKOL_ASSERT(item);
+            SOKOL_ASSERT(item->state != _SFETCH_STATE_INITIAL);
+            SOKOL_ASSERT(item->state != _SFETCH_STATE_FETCHING);
+            /* transfer input params from user- to thread-data */
+            if (item->user.pause)
+            {
+                item->state = _SFETCH_STATE_PAUSED;
+                item->user.pause = false;
+            }
+            if (item->user.cont)
+            {
+                if (item->state == _SFETCH_STATE_PAUSED)
+                {
+                    item->state = _SFETCH_STATE_FETCHED;
+                }
+                item->user.cont = false;
+            }
+            if (item->user.cancel)
+            {
+                _sfetch_cancel_item(item);
+            }
+            switch (item->state)
+            {
+                case _SFETCH_STATE_DISPATCHED:
+                case _SFETCH_STATE_FETCHED:
+                    item->state = _SFETCH_STATE_FETCHING;
+                    break;
+                default:
+                    break;
+            }
+        }
+        
 #if _SFETCH_HAS_THREADS
-    if (chn->valid)
-    {
-        _sfetch_thread_join(&chn->thread);
-    }
-    _sfetch_ring_discard(&chn->thread_incoming);
-    _sfetch_ring_discard(&chn->thread_outgoing);
-#endif
-    _sfetch_ring_discard(&chn->free_lanes);
-    _sfetch_ring_discard(&chn->user_sent);
-    _sfetch_ring_discard(&chn->user_incoming);
-    _sfetch_ring_discard(&chn->user_outgoing);
-    _sfetch_ring_discard(&chn->free_lanes);
-    chn->valid = false;
-}
-
-_SOKOL_PRIVATE bool _sfetch_channel_init(_sfetch_channel_t *chn, _sfetch_t *ctx, uint32_t num_items, uint32_t num_lanes, void (*request_handler)(_sfetch_t *ctx, uint32_t))
-{
-    SOKOL_ASSERT(chn && (num_items > 0) && request_handler);
-    SOKOL_ASSERT(!chn->valid);
-    bool valid = true;
-    chn->request_handler = request_handler;
-    chn->ctx = ctx;
-    valid &= _sfetch_ring_init(&chn->free_lanes, num_lanes);
-    for (uint32_t lane = 0; lane < num_lanes; lane++)
-    {
-        _sfetch_ring_enqueue(&chn->free_lanes, lane);
-    }
-    valid &= _sfetch_ring_init(&chn->user_sent, num_items);
-    valid &= _sfetch_ring_init(&chn->user_incoming, num_lanes);
-    valid &= _sfetch_ring_init(&chn->user_outgoing, num_lanes);
-#if _SFETCH_HAS_THREADS
-    valid &= _sfetch_ring_init(&chn->thread_incoming, num_lanes);
-    valid &= _sfetch_ring_init(&chn->thread_outgoing, num_lanes);
-#endif
-    if (valid)
-    {
-        chn->valid = true;
-#if _SFETCH_HAS_THREADS
-        _sfetch_thread_init(&chn->thread, _sfetch_channel_thread_func, chn);
-#endif
-        return true;
-    }
-    else
-    {
-        _sfetch_channel_discard(chn);
-        return false;
-    }
-}
-
-/* put a request into the channels sent-queue, this is where all new requests
-   are stored until a lane becomes free.
-*/
-_SOKOL_PRIVATE bool _sfetch_channel_send(_sfetch_channel_t *chn, uint32_t slot_id)
-{
-    SOKOL_ASSERT(chn && chn->valid);
-    if (!_sfetch_ring_full(&chn->user_sent))
-    {
-        _sfetch_ring_enqueue(&chn->user_sent, slot_id);
-        return true;
-    }
-    else
-    {
-        _SFETCH_ERROR(SEND_QUEUE_FULL);
-        return false;
-    }
-}
-
-_SOKOL_PRIVATE void _sfetch_invoke_response_callback(_sfetch_item_t *item)
-{
-    sfetch_response_t response;
-    _sfetch_clear(&response, sizeof(response));
-    response.handle = item->handle;
-    response.dispatched = (item->state == _SFETCH_STATE_DISPATCHED);
-    response.fetched = (item->state == _SFETCH_STATE_FETCHED);
-    response.paused = (item->state == _SFETCH_STATE_PAUSED);
-    response.finished = item->user.finished;
-    response.failed = (item->state == _SFETCH_STATE_FAILED);
-    response.cancelled = item->user.cancel;
-    response.error_code = item->user.error_code;
-    response.channel = item->channel;
-    response.lane = item->lane;
-    response.path = item->path.buf;
-    response.user_data = item->user.user_data;
-    response.data_offset = item->user.fetched_offset - item->user.fetched_size;
-    response.data.ptr = item->buffer.ptr;
-    response.data.size = item->user.fetched_size;
-    response.buffer = item->buffer;
-    item->callback(&response);
-}
-
-_SOKOL_PRIVATE void _sfetch_cancel_item(_sfetch_item_t *item)
-{
-    item->state = _SFETCH_STATE_FAILED;
-    item->user.finished = true;
-    item->user.error_code = SFETCH_ERROR_CANCELLED;
-}
-
-/* per-frame channel stuff: move requests in and out of the IO threads, call response callbacks */
-_SOKOL_PRIVATE void _sfetch_channel_dowork(_sfetch_channel_t *chn, _sfetch_pool_t *pool)
-{
-
-    /* move items from sent- to incoming-queue permitting free lanes */
-    const uint32_t num_sent = _sfetch_ring_count(&chn->user_sent);
-    const uint32_t avail_lanes = _sfetch_ring_count(&chn->free_lanes);
-    const uint32_t num_move = (num_sent < avail_lanes) ? num_sent : avail_lanes;
-    for (uint32_t i = 0; i < num_move; i++)
-    {
-        const uint32_t slot_id = _sfetch_ring_dequeue(&chn->user_sent);
-        _sfetch_item_t *item = _sfetch_pool_item_lookup(pool, slot_id);
-        SOKOL_ASSERT(item);
-        SOKOL_ASSERT(item->state == _SFETCH_STATE_ALLOCATED);
-        // if the item was cancelled early, kick it out immediately
-        if (item->user.cancel)
+        /* move new items into the IO threads and processed items out of IO threads */
+        _sfetch_thread_enqueue_incoming(&chn->thread, &chn->thread_incoming, &chn->user_incoming);
+        _sfetch_thread_dequeue_outgoing(&chn->thread, &chn->thread_outgoing, &chn->user_outgoing);
+#else
+        /* without threading just directly dequeue items from the user_incoming queue and
+         call the request handler, the user_outgoing queue will be filled as the
+         asynchronous HTTP requests sent by the request handler are completed
+         */
+        while (!_sfetch_ring_empty(&chn->user_incoming))
         {
-            _sfetch_cancel_item(item);
-            _sfetch_invoke_response_callback(item);
-            _sfetch_pool_item_free(pool, slot_id);
-            continue;
+            uint32_t slot_id = _sfetch_ring_dequeue(&chn->user_incoming);
+            _sfetch_request_handler(chn->ctx, slot_id);
         }
-        item->state = _SFETCH_STATE_DISPATCHED;
-        item->lane = _sfetch_ring_dequeue(&chn->free_lanes);
-        // if no buffer provided yet, invoke response callback to do so
-        if (0 == item->buffer.ptr)
+#endif
+        
+        /* drain the outgoing queue, prepare items for invoking the response
+         callback, and finally call the response callback, free finished items
+         */
+        while (!_sfetch_ring_empty(&chn->user_outgoing))
         {
-            _sfetch_invoke_response_callback(item);
-        }
-        _sfetch_ring_enqueue(&chn->user_incoming, slot_id);
-    }
-
-    /* prepare incoming items for being moved into the IO thread */
-    const uint32_t num_incoming = _sfetch_ring_count(&chn->user_incoming);
-    for (uint32_t i = 0; i < num_incoming; i++)
-    {
-        const uint32_t slot_id = _sfetch_ring_peek(&chn->user_incoming, i);
-        _sfetch_item_t *item = _sfetch_pool_item_lookup(pool, slot_id);
-        SOKOL_ASSERT(item);
-        SOKOL_ASSERT(item->state != _SFETCH_STATE_INITIAL);
-        SOKOL_ASSERT(item->state != _SFETCH_STATE_FETCHING);
-        /* transfer input params from user- to thread-data */
-        if (item->user.pause)
-        {
-            item->state = _SFETCH_STATE_PAUSED;
-            item->user.pause = false;
-        }
-        if (item->user.cont)
-        {
-            if (item->state == _SFETCH_STATE_PAUSED)
+            const uint32_t slot_id = _sfetch_ring_dequeue(&chn->user_outgoing);
+            SOKOL_ASSERT(slot_id);
+            _sfetch_item_t *item = _sfetch_pool_item_lookup(pool, slot_id);
+            SOKOL_ASSERT(item && item->callback);
+            SOKOL_ASSERT(item->state != _SFETCH_STATE_INITIAL);
+            SOKOL_ASSERT(item->state != _SFETCH_STATE_ALLOCATED);
+            SOKOL_ASSERT(item->state != _SFETCH_STATE_DISPATCHED);
+            SOKOL_ASSERT(item->state != _SFETCH_STATE_FETCHED);
+            /* transfer output params from thread- to user-data */
+            item->user.fetched_offset = item->thread.fetched_offset;
+            item->user.fetched_size = item->thread.fetched_size;
+            if (item->user.cancel)
+            {
+                _sfetch_cancel_item(item);
+            }
+            else
+            {
+                item->user.error_code = item->thread.error_code;
+            }
+            if (item->thread.finished)
+            {
+                item->user.finished = true;
+            }
+            /* state transition */
+            if (item->thread.failed)
+            {
+                item->state = _SFETCH_STATE_FAILED;
+            }
+            else if (item->state == _SFETCH_STATE_FETCHING)
             {
                 item->state = _SFETCH_STATE_FETCHED;
             }
+            _sfetch_invoke_response_callback(item);
+            
+            /* when the request is finished, free the lane for another request,
+             otherwise feed it back into the incoming queue
+             */
+            if (item->user.finished)
+            {
+                _sfetch_ring_enqueue(&chn->free_lanes, item->lane);
+                _sfetch_pool_item_free(pool, slot_id);
+            }
+            else
+            {
+                _sfetch_ring_enqueue(&chn->user_incoming, slot_id);
+            }
+        }
+    }
+    
+    _SOKOL_PRIVATE bool _sfetch_validate_request(_sfetch_t *ctx, const sfetch_request_t *req)
+    {
+        if (req->channel >= ctx->desc.num_channels)
+        {
+            _SFETCH_ERROR(REQUEST_CHANNEL_INDEX_TOO_BIG);
+            return false;
+        }
+        if (!req->path)
+        {
+            _SFETCH_ERROR(REQUEST_PATH_IS_NULL);
+            return false;
+        }
+        if (strlen(req->path) >= (SFETCH_MAX_PATH - 1))
+        {
+            _SFETCH_ERROR(REQUEST_PATH_TOO_LONG);
+            return false;
+        }
+        if (!req->callback)
+        {
+            _SFETCH_ERROR(REQUEST_CALLBACK_MISSING);
+            return false;
+        }
+        if (req->chunk_size > req->buffer.size)
+        {
+            _SFETCH_ERROR(REQUEST_CHUNK_SIZE_GREATER_BUFFER_SIZE);
+            return false;
+        }
+        if (req->user_data.ptr && (req->user_data.size == 0))
+        {
+            _SFETCH_ERROR(REQUEST_USERDATA_PTR_IS_SET_BUT_USERDATA_SIZE_IS_NULL);
+            return false;
+        }
+        if (!req->user_data.ptr && (req->user_data.size > 0))
+        {
+            _SFETCH_ERROR(REQUEST_USERDATA_PTR_IS_NULL_BUT_USERDATA_SIZE_IS_NOT);
+            return false;
+        }
+        if (req->user_data.size > SFETCH_MAX_USERDATA_UINT64 * sizeof(uint64_t))
+        {
+            _SFETCH_ERROR(REQUEST_USERDATA_SIZE_TOO_BIG);
+            return false;
+        }
+        return true;
+    }
+    
+    _SOKOL_PRIVATE sfetch_desc_t _sfetch_desc_defaults(const sfetch_desc_t *desc)
+    {
+        SOKOL_ASSERT((desc->allocator.alloc_fn && desc->allocator.free_fn) || (!desc->allocator.alloc_fn && !desc->allocator.free_fn));
+        sfetch_desc_t res = *desc;
+        res.max_requests = _sfetch_def(desc->max_requests, 128);
+        res.num_channels = _sfetch_def(desc->num_channels, 1);
+        res.num_lanes = _sfetch_def(desc->num_lanes, 1);
+        return res;
+    }
+    
+    // ██████  ██    ██ ██████  ██      ██  ██████
+    // ██   ██ ██    ██ ██   ██ ██      ██ ██
+    // ██████  ██    ██ ██████  ██      ██ ██
+    // ██      ██    ██ ██   ██ ██      ██ ██
+    // ██       ██████  ██████  ███████ ██  ██████
+    //
+    // >>public
+    SOKOL_API_IMPL void sfetch_setup(const sfetch_desc_t *desc_)
+    {
+        SOKOL_ASSERT(desc_);
+        SOKOL_ASSERT(0 == _sfetch);
+        
+        sfetch_desc_t desc = _sfetch_desc_defaults(desc_);
+        _sfetch = (_sfetch_t *)_sfetch_malloc_with_allocator(&desc.allocator, sizeof(_sfetch_t));
+        SOKOL_ASSERT(_sfetch);
+        _sfetch_t *ctx = _sfetch_ctx();
+        _sfetch_clear(ctx, sizeof(_sfetch_t));
+        ctx->desc = desc;
+        ctx->setup = true;
+        ctx->valid = true;
+        
+        /* replace zero-init items with default values */
+        if (ctx->desc.num_channels > SFETCH_MAX_CHANNELS)
+        {
+            ctx->desc.num_channels = SFETCH_MAX_CHANNELS;
+            _SFETCH_WARN(CLAMPING_NUM_CHANNELS_TO_MAX_CHANNELS);
+        }
+        
+        /* setup the global request item pool */
+        ctx->valid &= _sfetch_pool_init(&ctx->pool, ctx->desc.max_requests);
+        
+        /* setup IO channels (one thread per channel) */
+        for (uint32_t i = 0; i < ctx->desc.num_channels; i++)
+        {
+            ctx->valid &= _sfetch_channel_init(&ctx->chn[i], ctx, ctx->desc.max_requests, ctx->desc.num_lanes, _sfetch_request_handler);
+        }
+    }
+    
+    SOKOL_API_IMPL void sfetch_shutdown(void)
+    {
+        _sfetch_t *ctx = _sfetch_ctx();
+        SOKOL_ASSERT(ctx && ctx->setup);
+        ctx->valid = false;
+        /* IO threads must be shutdown first */
+        for (uint32_t i = 0; i < ctx->desc.num_channels; i++)
+        {
+            if (ctx->chn[i].valid)
+            {
+                _sfetch_channel_discard(&ctx->chn[i]);
+            }
+        }
+        _sfetch_pool_discard(&ctx->pool);
+        ctx->setup = false;
+        _sfetch_free(ctx);
+        _sfetch = 0;
+    }
+    
+    SOKOL_API_IMPL bool sfetch_valid(void)
+    {
+        _sfetch_t *ctx = _sfetch_ctx();
+        return ctx && ctx->valid;
+    }
+    
+    SOKOL_API_IMPL sfetch_desc_t sfetch_desc(void)
+    {
+        _sfetch_t *ctx = _sfetch_ctx();
+        SOKOL_ASSERT(ctx && ctx->valid);
+        return ctx->desc;
+    }
+    
+    SOKOL_API_IMPL int sfetch_max_userdata_bytes(void)
+    {
+        return SFETCH_MAX_USERDATA_UINT64 * 8;
+    }
+    
+    SOKOL_API_IMPL int sfetch_max_path(void)
+    {
+        return SFETCH_MAX_PATH;
+    }
+    
+    SOKOL_API_IMPL bool sfetch_handle_valid(sfetch_handle_t h)
+    {
+        _sfetch_t *ctx = _sfetch_ctx();
+        SOKOL_ASSERT(ctx && ctx->valid);
+        /* shortcut invalid handle */
+        if (h.id == 0)
+        {
+            return false;
+        }
+        return 0 != _sfetch_pool_item_lookup(&ctx->pool, h.id);
+    }
+    
+    SOKOL_API_IMPL sfetch_handle_t sfetch_send(const sfetch_request_t *request)
+    {
+        _sfetch_t *ctx = _sfetch_ctx();
+        SOKOL_ASSERT(ctx && ctx->setup);
+        
+        const sfetch_handle_t invalid_handle = _sfetch_make_handle(0);
+        if (!ctx->valid)
+        {
+            return invalid_handle;
+        }
+        if (!_sfetch_validate_request(ctx, request))
+        {
+            return invalid_handle;
+        }
+        SOKOL_ASSERT(request->channel < ctx->desc.num_channels);
+        
+        uint32_t slot_id = _sfetch_pool_item_alloc(&ctx->pool, request);
+        if (0 == slot_id)
+        {
+            _SFETCH_WARN(REQUEST_POOL_EXHAUSTED);
+            return invalid_handle;
+        }
+        if (!_sfetch_channel_send(&ctx->chn[request->channel], slot_id))
+        {
+            /* send failed because the channels sent-queue overflowed */
+            _sfetch_pool_item_free(&ctx->pool, slot_id);
+            return invalid_handle;
+        }
+        return _sfetch_make_handle(slot_id);
+    }
+    
+    SOKOL_API_IMPL void sfetch_dowork(void)
+    {
+        _sfetch_t *ctx = _sfetch_ctx();
+        SOKOL_ASSERT(ctx && ctx->setup);
+        if (!ctx->valid)
+        {
+            return;
+        }
+        /* we're pumping each channel 2x so that unfinished request items coming out the
+         IO threads can be moved back into the IO-thread immediately without
+         having to wait a frame
+         */
+        ctx->in_callback = true;
+        for (int pass = 0; pass < 2; pass++)
+        {
+            for (uint32_t chn_index = 0; chn_index < ctx->desc.num_channels; chn_index++)
+            {
+                _sfetch_channel_dowork(&ctx->chn[chn_index], &ctx->pool);
+            }
+        }
+        ctx->in_callback = false;
+    }
+    
+    SOKOL_API_IMPL void sfetch_bind_buffer(sfetch_handle_t h, sfetch_range_t buffer)
+    {
+        _sfetch_t *ctx = _sfetch_ctx();
+        SOKOL_ASSERT(ctx && ctx->valid);
+        SOKOL_ASSERT(ctx->in_callback);
+        SOKOL_ASSERT(buffer.ptr && (buffer.size > 0));
+        _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, h.id);
+        if (item)
+        {
+            SOKOL_ASSERT((0 == item->buffer.ptr) && (0 == item->buffer.size));
+            item->buffer = buffer;
+        }
+    }
+    
+    SOKOL_API_IMPL void *sfetch_unbind_buffer(sfetch_handle_t h)
+    {
+        _sfetch_t *ctx = _sfetch_ctx();
+        SOKOL_ASSERT(ctx && ctx->valid);
+        SOKOL_ASSERT(ctx->in_callback);
+        _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, h.id);
+        if (item)
+        {
+            void *prev_buf_ptr = (void *)item->buffer.ptr;
+            item->buffer.ptr = 0;
+            item->buffer.size = 0;
+            return prev_buf_ptr;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    
+    SOKOL_API_IMPL void sfetch_pause(sfetch_handle_t h)
+    {
+        _sfetch_t *ctx = _sfetch_ctx();
+        SOKOL_ASSERT(ctx && ctx->valid);
+        _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, h.id);
+        if (item)
+        {
+            item->user.pause = true;
             item->user.cont = false;
         }
-        if (item->user.cancel)
-        {
-            _sfetch_cancel_item(item);
-        }
-        switch (item->state)
-        {
-        case _SFETCH_STATE_DISPATCHED:
-        case _SFETCH_STATE_FETCHED:
-            item->state = _SFETCH_STATE_FETCHING;
-            break;
-        default:
-            break;
-        }
     }
-
-#if _SFETCH_HAS_THREADS
-    /* move new items into the IO threads and processed items out of IO threads */
-    _sfetch_thread_enqueue_incoming(&chn->thread, &chn->thread_incoming, &chn->user_incoming);
-    _sfetch_thread_dequeue_outgoing(&chn->thread, &chn->thread_outgoing, &chn->user_outgoing);
-#else
-    /* without threading just directly dequeue items from the user_incoming queue and
-       call the request handler, the user_outgoing queue will be filled as the
-       asynchronous HTTP requests sent by the request handler are completed
-    */
-    while (!_sfetch_ring_empty(&chn->user_incoming))
+    
+    SOKOL_API_IMPL void sfetch_continue(sfetch_handle_t h)
     {
-        uint32_t slot_id = _sfetch_ring_dequeue(&chn->user_incoming);
-        _sfetch_request_handler(chn->ctx, slot_id);
-    }
-#endif
-
-    /* drain the outgoing queue, prepare items for invoking the response
-       callback, and finally call the response callback, free finished items
-    */
-    while (!_sfetch_ring_empty(&chn->user_outgoing))
-    {
-        const uint32_t slot_id = _sfetch_ring_dequeue(&chn->user_outgoing);
-        SOKOL_ASSERT(slot_id);
-        _sfetch_item_t *item = _sfetch_pool_item_lookup(pool, slot_id);
-        SOKOL_ASSERT(item && item->callback);
-        SOKOL_ASSERT(item->state != _SFETCH_STATE_INITIAL);
-        SOKOL_ASSERT(item->state != _SFETCH_STATE_ALLOCATED);
-        SOKOL_ASSERT(item->state != _SFETCH_STATE_DISPATCHED);
-        SOKOL_ASSERT(item->state != _SFETCH_STATE_FETCHED);
-        /* transfer output params from thread- to user-data */
-        item->user.fetched_offset = item->thread.fetched_offset;
-        item->user.fetched_size = item->thread.fetched_size;
-        if (item->user.cancel)
+        _sfetch_t *ctx = _sfetch_ctx();
+        SOKOL_ASSERT(ctx && ctx->valid);
+        _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, h.id);
+        if (item)
         {
-            _sfetch_cancel_item(item);
-        }
-        else
-        {
-            item->user.error_code = item->thread.error_code;
-        }
-        if (item->thread.finished)
-        {
-            item->user.finished = true;
-        }
-        /* state transition */
-        if (item->thread.failed)
-        {
-            item->state = _SFETCH_STATE_FAILED;
-        }
-        else if (item->state == _SFETCH_STATE_FETCHING)
-        {
-            item->state = _SFETCH_STATE_FETCHED;
-        }
-        _sfetch_invoke_response_callback(item);
-
-        /* when the request is finished, free the lane for another request,
-           otherwise feed it back into the incoming queue
-        */
-        if (item->user.finished)
-        {
-            _sfetch_ring_enqueue(&chn->free_lanes, item->lane);
-            _sfetch_pool_item_free(pool, slot_id);
-        }
-        else
-        {
-            _sfetch_ring_enqueue(&chn->user_incoming, slot_id);
+            item->user.cont = true;
+            item->user.pause = false;
         }
     }
-}
-
-_SOKOL_PRIVATE bool _sfetch_validate_request(_sfetch_t *ctx, const sfetch_request_t *req)
-{
-    if (req->channel >= ctx->desc.num_channels)
+    
+    SOKOL_API_IMPL void sfetch_cancel(sfetch_handle_t h)
     {
-        _SFETCH_ERROR(REQUEST_CHANNEL_INDEX_TOO_BIG);
-        return false;
-    }
-    if (!req->path)
-    {
-        _SFETCH_ERROR(REQUEST_PATH_IS_NULL);
-        return false;
-    }
-    if (strlen(req->path) >= (SFETCH_MAX_PATH - 1))
-    {
-        _SFETCH_ERROR(REQUEST_PATH_TOO_LONG);
-        return false;
-    }
-    if (!req->callback)
-    {
-        _SFETCH_ERROR(REQUEST_CALLBACK_MISSING);
-        return false;
-    }
-    if (req->chunk_size > req->buffer.size)
-    {
-        _SFETCH_ERROR(REQUEST_CHUNK_SIZE_GREATER_BUFFER_SIZE);
-        return false;
-    }
-    if (req->user_data.ptr && (req->user_data.size == 0))
-    {
-        _SFETCH_ERROR(REQUEST_USERDATA_PTR_IS_SET_BUT_USERDATA_SIZE_IS_NULL);
-        return false;
-    }
-    if (!req->user_data.ptr && (req->user_data.size > 0))
-    {
-        _SFETCH_ERROR(REQUEST_USERDATA_PTR_IS_NULL_BUT_USERDATA_SIZE_IS_NOT);
-        return false;
-    }
-    if (req->user_data.size > SFETCH_MAX_USERDATA_UINT64 * sizeof(uint64_t))
-    {
-        _SFETCH_ERROR(REQUEST_USERDATA_SIZE_TOO_BIG);
-        return false;
-    }
-    return true;
-}
-
-_SOKOL_PRIVATE sfetch_desc_t _sfetch_desc_defaults(const sfetch_desc_t *desc)
-{
-    SOKOL_ASSERT((desc->allocator.alloc_fn && desc->allocator.free_fn) || (!desc->allocator.alloc_fn && !desc->allocator.free_fn));
-    sfetch_desc_t res = *desc;
-    res.max_requests = _sfetch_def(desc->max_requests, 128);
-    res.num_channels = _sfetch_def(desc->num_channels, 1);
-    res.num_lanes = _sfetch_def(desc->num_lanes, 1);
-    return res;
-}
-
-// ██████  ██    ██ ██████  ██      ██  ██████
-// ██   ██ ██    ██ ██   ██ ██      ██ ██
-// ██████  ██    ██ ██████  ██      ██ ██
-// ██      ██    ██ ██   ██ ██      ██ ██
-// ██       ██████  ██████  ███████ ██  ██████
-//
-// >>public
-SOKOL_API_IMPL void sfetch_setup(const sfetch_desc_t *desc_)
-{
-    SOKOL_ASSERT(desc_);
-    SOKOL_ASSERT(0 == _sfetch);
-
-    sfetch_desc_t desc = _sfetch_desc_defaults(desc_);
-    _sfetch = (_sfetch_t *)_sfetch_malloc_with_allocator(&desc.allocator, sizeof(_sfetch_t));
-    SOKOL_ASSERT(_sfetch);
-    _sfetch_t *ctx = _sfetch_ctx();
-    _sfetch_clear(ctx, sizeof(_sfetch_t));
-    ctx->desc = desc;
-    ctx->setup = true;
-    ctx->valid = true;
-
-    /* replace zero-init items with default values */
-    if (ctx->desc.num_channels > SFETCH_MAX_CHANNELS)
-    {
-        ctx->desc.num_channels = SFETCH_MAX_CHANNELS;
-        _SFETCH_WARN(CLAMPING_NUM_CHANNELS_TO_MAX_CHANNELS);
-    }
-
-    /* setup the global request item pool */
-    ctx->valid &= _sfetch_pool_init(&ctx->pool, ctx->desc.max_requests);
-
-    /* setup IO channels (one thread per channel) */
-    for (uint32_t i = 0; i < ctx->desc.num_channels; i++)
-    {
-        ctx->valid &= _sfetch_channel_init(&ctx->chn[i], ctx, ctx->desc.max_requests, ctx->desc.num_lanes, _sfetch_request_handler);
-    }
-}
-
-SOKOL_API_IMPL void sfetch_shutdown(void)
-{
-    _sfetch_t *ctx = _sfetch_ctx();
-    SOKOL_ASSERT(ctx && ctx->setup);
-    ctx->valid = false;
-    /* IO threads must be shutdown first */
-    for (uint32_t i = 0; i < ctx->desc.num_channels; i++)
-    {
-        if (ctx->chn[i].valid)
+        _sfetch_t *ctx = _sfetch_ctx();
+        SOKOL_ASSERT(ctx && ctx->valid);
+        _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, h.id);
+        if (item)
         {
-            _sfetch_channel_discard(&ctx->chn[i]);
+            item->user.cont = false;
+            item->user.pause = false;
+            item->user.cancel = true;
         }
     }
-    _sfetch_pool_discard(&ctx->pool);
-    ctx->setup = false;
-    _sfetch_free(ctx);
-    _sfetch = 0;
-}
-
-SOKOL_API_IMPL bool sfetch_valid(void)
-{
-    _sfetch_t *ctx = _sfetch_ctx();
-    return ctx && ctx->valid;
-}
-
-SOKOL_API_IMPL sfetch_desc_t sfetch_desc(void)
-{
-    _sfetch_t *ctx = _sfetch_ctx();
-    SOKOL_ASSERT(ctx && ctx->valid);
-    return ctx->desc;
-}
-
-SOKOL_API_IMPL int sfetch_max_userdata_bytes(void)
-{
-    return SFETCH_MAX_USERDATA_UINT64 * 8;
-}
-
-SOKOL_API_IMPL int sfetch_max_path(void)
-{
-    return SFETCH_MAX_PATH;
-}
-
-SOKOL_API_IMPL bool sfetch_handle_valid(sfetch_handle_t h)
-{
-    _sfetch_t *ctx = _sfetch_ctx();
-    SOKOL_ASSERT(ctx && ctx->valid);
-    /* shortcut invalid handle */
-    if (h.id == 0)
-    {
-        return false;
-    }
-    return 0 != _sfetch_pool_item_lookup(&ctx->pool, h.id);
-}
-
-SOKOL_API_IMPL sfetch_handle_t sfetch_send(const sfetch_request_t *request)
-{
-    _sfetch_t *ctx = _sfetch_ctx();
-    SOKOL_ASSERT(ctx && ctx->setup);
-
-    const sfetch_handle_t invalid_handle = _sfetch_make_handle(0);
-    if (!ctx->valid)
-    {
-        return invalid_handle;
-    }
-    if (!_sfetch_validate_request(ctx, request))
-    {
-        return invalid_handle;
-    }
-    SOKOL_ASSERT(request->channel < ctx->desc.num_channels);
-
-    uint32_t slot_id = _sfetch_pool_item_alloc(&ctx->pool, request);
-    if (0 == slot_id)
-    {
-        _SFETCH_WARN(REQUEST_POOL_EXHAUSTED);
-        return invalid_handle;
-    }
-    if (!_sfetch_channel_send(&ctx->chn[request->channel], slot_id))
-    {
-        /* send failed because the channels sent-queue overflowed */
-        _sfetch_pool_item_free(&ctx->pool, slot_id);
-        return invalid_handle;
-    }
-    return _sfetch_make_handle(slot_id);
-}
-
-SOKOL_API_IMPL void sfetch_dowork(void)
-{
-    _sfetch_t *ctx = _sfetch_ctx();
-    SOKOL_ASSERT(ctx && ctx->setup);
-    if (!ctx->valid)
-    {
-        return;
-    }
-    /* we're pumping each channel 2x so that unfinished request items coming out the
-       IO threads can be moved back into the IO-thread immediately without
-       having to wait a frame
-     */
-    ctx->in_callback = true;
-    for (int pass = 0; pass < 2; pass++)
-    {
-        for (uint32_t chn_index = 0; chn_index < ctx->desc.num_channels; chn_index++)
-        {
-            _sfetch_channel_dowork(&ctx->chn[chn_index], &ctx->pool);
-        }
-    }
-    ctx->in_callback = false;
-}
-
-SOKOL_API_IMPL void sfetch_bind_buffer(sfetch_handle_t h, sfetch_range_t buffer)
-{
-    _sfetch_t *ctx = _sfetch_ctx();
-    SOKOL_ASSERT(ctx && ctx->valid);
-    SOKOL_ASSERT(ctx->in_callback);
-    SOKOL_ASSERT(buffer.ptr && (buffer.size > 0));
-    _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, h.id);
-    if (item)
-    {
-        SOKOL_ASSERT((0 == item->buffer.ptr) && (0 == item->buffer.size));
-        item->buffer = buffer;
-    }
-}
-
-SOKOL_API_IMPL void *sfetch_unbind_buffer(sfetch_handle_t h)
-{
-    _sfetch_t *ctx = _sfetch_ctx();
-    SOKOL_ASSERT(ctx && ctx->valid);
-    SOKOL_ASSERT(ctx->in_callback);
-    _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, h.id);
-    if (item)
-    {
-        void *prev_buf_ptr = (void *)item->buffer.ptr;
-        item->buffer.ptr = 0;
-        item->buffer.size = 0;
-        return prev_buf_ptr;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-SOKOL_API_IMPL void sfetch_pause(sfetch_handle_t h)
-{
-    _sfetch_t *ctx = _sfetch_ctx();
-    SOKOL_ASSERT(ctx && ctx->valid);
-    _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, h.id);
-    if (item)
-    {
-        item->user.pause = true;
-        item->user.cont = false;
-    }
-}
-
-SOKOL_API_IMPL void sfetch_continue(sfetch_handle_t h)
-{
-    _sfetch_t *ctx = _sfetch_ctx();
-    SOKOL_ASSERT(ctx && ctx->valid);
-    _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, h.id);
-    if (item)
-    {
-        item->user.cont = true;
-        item->user.pause = false;
-    }
-}
-
-SOKOL_API_IMPL void sfetch_cancel(sfetch_handle_t h)
-{
-    _sfetch_t *ctx = _sfetch_ctx();
-    SOKOL_ASSERT(ctx && ctx->valid);
-    _sfetch_item_t *item = _sfetch_pool_item_lookup(&ctx->pool, h.id);
-    if (item)
-    {
-        item->user.cont = false;
-        item->user.pause = false;
-        item->user.cancel = true;
-    }
-}
-
+    
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
+    
 #endif /* SOKOL_FETCH_IMPL */
+    
+

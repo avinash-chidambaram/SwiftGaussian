@@ -32,6 +32,7 @@
 				core/loader/spzloader.h,
 				core/renderer.h,
 				core/scene.h,
+				core/sokol_glue_app.h,
 				core/sokol/sokol_app.h,
 				core/sokol/sokol_fetch.h,
 				core/sokol/sokol_gfx.h,
@@ -207,10 +208,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = K6FZYUHLAF;
 				ENABLE_MODULE_VERIFIER = NO;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					SOKOL_IMPL,
-					SOKOL_METAL,
-				);
+				GCC_PREPROCESSOR_DEFINITIONS = USE_SOKOL;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/SwiftGaussian/core\"/**";
 				INFOPLIST_FILE = SwiftGaussian/Info.plist;
@@ -225,10 +223,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				OTHER_CFLAGS = (
-					"\"-DSOKOL_METAL -D_SAPP_APPLE\"",
-					"-fmodule-map-file=$(PROJECT_DIR)/SwiftGaussian/core/module.modulemap",
-				);
+				OTHER_CFLAGS = "-fmodule-map-file=$(PROJECT_DIR)/SwiftGaussian/core/module.modulemap";
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-Wno-module-import-in-extern-c",
@@ -255,10 +250,7 @@
 				DEVELOPMENT_TEAM = K6FZYUHLAF;
 				ENABLE_MODULE_VERIFIER = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					SOKOL_IMPL,
-					SOKOL_METAL,
-				);
+				GCC_PREPROCESSOR_DEFINITIONS = USE_SOKOL;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/SwiftGaussian/core\"/**";
 				INFOPLIST_FILE = SwiftGaussian/Info.plist;
@@ -273,10 +265,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				OTHER_CFLAGS = (
-					"\"-DSOKOL_METAL -D_SAPP_APPLE\"",
-					"-fmodule-map-file=$(PROJECT_DIR)/SwiftGaussian/core/module.modulemap",
-				);
+				OTHER_CFLAGS = "-fmodule-map-file=$(PROJECT_DIR)/SwiftGaussian/core/module.modulemap";
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-Wno-module-import-in-extern-c",

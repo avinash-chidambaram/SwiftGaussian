@@ -1,3 +1,5 @@
+#ifndef SOKOL_GLUE_H
+#define SOKOL_GLUE_H
 #if defined(SOKOL_IMPL) && !defined(SOKOL_GLUE_IMPL)
 #define SOKOL_GLUE_IMPL
 #endif
@@ -160,3 +162,5 @@ SOKOL_API_IMPL sg_swapchain sglue_swapchain(void) {
 }
 
 #endif /* SOKOL_GLUE_IMPL */
+
+#endif //sokol_glue

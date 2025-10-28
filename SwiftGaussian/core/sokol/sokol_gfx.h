@@ -1,3 +1,5 @@
+#ifndef SOKOL_GFX_H
+#define SOKOL_GFX_H
 #if defined(SOKOL_IMPL) && !defined(SOKOL_GFX_IMPL)
 #define SOKOL_GFX_IMPL
 #endif
@@ -22437,3 +22439,5 @@ SOKOL_API_IMPL sg_gl_view_info sg_gl_query_view_info(sg_view view_id) {
 #endif
 
 #endif // SOKOL_GFX_IMPL
+
+#endif //sokol-gfx

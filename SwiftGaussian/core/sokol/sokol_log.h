@@ -1,3 +1,5 @@
+#ifndef SOKOL_LOG_H
+#define SOKOL_LOG_H
 #if defined(SOKOL_IMPL) && !defined(SOKOL_LOG_IMPL)
 #define SOKOL_LOG_IMPL
 #endif
@@ -332,3 +334,5 @@ SOKOL_API_IMPL void slog_func(const char* tag, uint32_t log_level, uint32_t log_
     }
 }
 #endif // SOKOL_LOG_IMPL
+
+#endif //sokol_log-h
